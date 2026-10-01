@@ -1,0 +1,101 @@
+flowchart TD
+
+    %% =========================
+    %% ACTORES
+    %% =========================
+    subgraph ACTORES["ACTORES"]
+        Administrado["Administrado"]
+        Gestor["Gestor de área"]
+        Autoridad["Autoridad / Administrador"]
+    end
+
+    %% =========================
+    %% PRESENTACIÓN
+    %% =========================
+    subgraph PRESENTACION["PRESENTACIÓN"]
+        WebApp["App Web Ciudadana (WCAG)"]
+        Backoffice["Backoffice Institucional"]
+    end
+
+    %% =========================
+    %% GATEWAY DE CANALES
+    %% =========================
+    subgraph GATEWAY["GATEWAY DE CANALES"]
+        Gateway["API sin estado (WhatsApp · Web · SMS)"]
+    end
+
+    %% =========================
+    %% BUS DE EVENTOS
+    %% =========================
+    subgraph BUS["BUS DE EVENTOS"]
+        Colas["Colas por etapa: transcripción · clasificación · respuesta · notificación"]
+    end
+
+    %% =========================
+    %% LÓGICA DE NEGOCIO
+    %% =========================
+    subgraph NEGOCIO["LÓGICA DE NEGOCIO"]
+        Normalizador["Normalizador de texto"]
+        Clasificador["Clasificador de intención"]
+        Extractor["Extractor de entidades"]
+        Enrutador["Enrutador por intención"]
+        Recuperador["Recuperador (corpus normativo)"]
+        Generador["Generador con cita"]
+        Confianza["Evaluador de confianza"]
+        Tramites["Servicio de trámites (TUPA · estado)"]
+        Dialogo["Gestor de diálogo guiado"]
+        Notificaciones["Servicio de notificaciones"]
+    end
+
+    %% =========================
+    %% DATOS
+    %% =========================
+    subgraph DATOS["DATOS"]
+        BD["BD relacional + extensión vectorial"]
+        Cache["Caché en memoria (sesión y estados)"]
+        Docs["Repositorio de documentos oficiales"]
+    end
+
+    %% =========================
+    %% SISTEMAS EXTERNOS
+    %% =========================
+    subgraph EXTERNOS["SISTEMAS EXTERNOS"]
+        Docu["Sistema de gestión documentaria"]
+        LLM["Proveedor de modelos (lenguaje y voz)"]
+        Reniec["RENIEC / PIDE (opcional)"]
+        Pagos["Pasarela de pagos (opcional)"]
+    end
+
+    %% =========================
+    %% FLUJO PRINCIPAL
+    %% =========================
+    ACTORES --> PRESENTACION
+    PRESENTACION --> GATEWAY
+    GATEWAY --> BUS
+    BUS --> NEGOCIO
+    NEGOCIO --> DATOS
+
+    %% =========================
+    %% INTEGRACIONES
+    %% =========================
+    Enrutador -->|"información"| Recuperador
+    Enrutador -->|"estado"| Tramites
+    Enrutador -->|"iniciar trámite"| Dialogo
+    Recuperador --> Generador
+    Generador --> Confianza
+    Confianza -->|"confianza OK"| Notificaciones
+    Confianza -->|"deriva"| Backoffice
+    Backoffice -->|"aprueba"| Notificaciones
+    Tramites -->|"registra / consulta expediente"| Docu
+    Notificaciones -->|"responde por canal"| GATEWAY
+    Dialogo -->|"envía expediente"| Docu
+    LLM -->|"transcripción · clasificación · generación"| NEGOCIO
+    Pagos --> Dialogo
+    Reniec --> Dialogo
+
+    %% =========================
+    %% ESTILOS
+    %% =========================
+    classDef darkBox fill:#1e1e1e,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    class ACTORES,PRESENTACION,GATEWAY,BUS,NEGOCIO,DATOS,EXTERNOS darkBox
+    class Administrado,Gestor,Autoridad,WebApp,Backoffice,Gateway,Colas,Normalizador,Clasificador,Extractor,Enrutador,Recuperador,Generador,Confianza,Tramites,Dialogo,Notificaciones,BD,Cache,Docs,Docu,LLM,Reniec,Pagos darkBox
