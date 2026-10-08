@@ -1,0 +1,163 @@
+@startuml enfoque_arquitectonico
+
+title Enfoque arquitectónico — Clean Architecture aplicado al Servicio de Trámites
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+
+skinparam rectangle {
+  BorderColor #1e1e1e
+  FontStyle bold
+}
+
+skinparam component {
+  BorderColor #1e1e1e
+  BackgroundColor #FFFFFF
+}
+
+skinparam interface {
+  BorderColor #5B3FB2
+  BackgroundColor #FFFFFF
+}
+
+skinparam note {
+  BorderColor #1e1e1e
+  BackgroundColor #FFFCE8
+}
+
+skinparam cloud {
+  BorderColor #888888
+  BackgroundColor #EEEEEE
+}
+
+' ============================================================
+' CONTENEDOR: Servicio de Trámites (Clean Architecture)
+' ============================================================
+rectangle "«aplicación» Servicio de Trámites  src/servicios/tramites/\nNode.js 20 LTS · TypeScript" as APP {
+
+  ' ------------------ ADAPTADORES Y FRAMEWORKS ------------------
+  rectangle "ADAPTADORES Y FRAMEWORKS — depende de Express, ORM, SDK externos" as ADAPT #E8E8E8 {
+
+    rectangle "«adaptador HTTP»\nTramitesController\nrecibe /tramites /expedientes" as CTL_HTTP
+    rectangle "«adaptador BD»\nTramitesRepositoryPg\nSequelize · modelos TUPA" as REP_PG
+    rectangle "«adaptador BD»\nExpedientesRepositoryPg\nconsulta estado local" as EXP_PG
+    rectangle "«adaptador externo»\nSistemaDocumentarioAcl\ncapa anticorrupción" as ACL_DOCU
+    rectangle "«adaptador externo»\nValidadorIdentidadHttp\nRENIEC / PIDE" as ACL_REN
+    rectangle "«adaptador externo»\nPasarelaPagosHttp\ncobro de tasas" as ACL_PAG
+    rectangle "«composición»\ntramites.composicion.ts\nInjectionToken · useFactory" as COMP
+
+  }
+
+  ' ------------------ APLICACIÓN (casos de uso) ------------------
+  rectangle "APLICACIÓN — casos de uso · src/servicios/tramites/aplicacion/" as APP_CAPA #E8F4E8 {
+
+    component "«caso de uso»\nConsultarTramiteTUPA" as CU_CONS
+    component "«caso de uso»\nConsultarEstadoExpediente" as CU_EST
+    component "«caso de uso»\nIniciarExpedienteGuiado" as CU_INI
+    component "«caso de uso»\nActualizarTramiteTUPA" as CU_UPD
+
+  }
+
+  ' ------------------ DOMINIO (núcleo) ------------------
+  rectangle "DOMINIO — núcleo · TypeScript puro · sin Express, ni ORM, ni SDK\nsrc/servicios/tramites/dominio/" as DOM_CAPA #FFF4D6 {
+
+    rectangle "Modelos (entidades y reglas de negocio)" as MOD_BOX {
+      component "«entidad»\nTramite\nrequisitos · costos · plazos\nbase legal · área" as E_TRAM
+      component "«entidad»\nExpediente\nestado · etapas · documentos" as E_EXP
+      component "«valor»\nTUPAIndice" as V_TUPA
+      component "«regla»\nversiones.ts\nvigencia y alerta" as R_VER
+    }
+
+    rectangle "Contratos (puertos — interfaces)" as CON_BOX {
+      interface "RepositorioTramites" as P_REP_T
+      interface "RepositorioExpedientes" as P_REP_E
+      interface "SistemaDocumentario" as P_DOC
+      interface "ValidadorIdentidad" as P_REN
+      interface "PasarelaPagos" as P_PAG
+    }
+
+  }
+
+}
+
+' ============================================================
+' SISTEMAS EXTERNOS
+' ============================================================
+cloud "«sistema externo»\nSistema de gestión\ndocumentaria\nmesa de partes" as EXT_DOCU #EEEEEE
+cloud "«sistema externo»\nRENIEC / PIDE" as EXT_REN #EEEEEE
+cloud "«sistema externo»\nPasarela de pagos" as EXT_PAG #EEEEEE
+
+' ============================================================
+' RELACIONES — ADAPTADORES -> CASOS DE USO -> DOMINIO
+' ============================================================
+
+' Adaptadores HTTP invocan casos de uso
+CTL_HTTP --> CU_CONS : invoca
+CTL_HTTP --> CU_EST  : invoca
+CTL_HTTP --> CU_INI  : invoca
+CTL_HTTP --> CU_UPD  : invoca
+
+' Casos de uso dependen del dominio (modelos y contratos)
+CU_CONS ..> E_TRAM    : usa
+CU_CONS ..> V_TUPA    : usa
+CU_CONS ..> R_VER     : aplica
+CU_CONS ..> P_REP_T   : depende de
+
+CU_EST  ..> E_EXP     : usa
+CU_EST  ..> P_REP_E   : depende de
+CU_EST  ..> P_DOC     : depende de
+
+CU_INI  ..> E_TRAM    : usa
+CU_INI  ..> E_EXP     : usa
+CU_INI  ..> P_REP_T   : depende de
+CU_INI  ..> P_REP_E   : depende de
+CU_INI  ..> P_DOC     : depende de
+CU_INI  ..> P_REN     : depende de
+CU_INI  ..> P_PAG     : depende de
+
+CU_UPD  ..> E_TRAM    : usa
+CU_UPD  ..> P_REP_T   : depende de
+
+' Adaptadores implementan los contratos del dominio
+REP_PG  ..|> P_REP_T : implementa
+EXP_PG  ..|> P_REP_E : implementa
+ACL_DOCU ..|> P_DOC   : implementa
+ACL_REN  ..|> P_REN   : implementa
+ACL_PAG  ..|> P_PAG   : implementa
+
+' Adaptadores externos -> sistemas externos
+ACL_DOCU --> EXT_DOCU : HTTPS / REST / SOAP
+ACL_REN  --> EXT_REN  : HTTPS
+ACL_PAG  --> EXT_PAG  : HTTPS
+
+' Raíz de composición registra adaptadores
+COMP ..> REP_PG  : registra
+COMP ..> EXP_PG  : registra
+COMP ..> ACL_DOCU : registra
+COMP ..> ACL_REN  : registra
+COMP ..> ACL_PAG  : registra
+
+' ============================================================
+' LEYENDA
+' ============================================================
+legend right
+  |= Símbolo |= Significado |
+  | <#FFF4D6> Dominio | núcleo: entidades, reglas y contratos (sin dependencias externas) |
+  | <#E8F4E8> Aplicación | casos de uso: orquestan entidades y contratos |
+  | <#E8E8E8> Adaptadores y frameworks | Express, ORM, SDK externos |
+  | ---> | llamada en tiempo de ejecución |
+  | ..> | dependencia de código (import) hacia el centro |
+  | ..|> | implementa el contrato definido en el dominio |
+endlegend
+
+note bottom of DOM_CAPA
+  Anillos concéntricos:
+  **Dominio ⊂ Aplicación ⊂ Adaptadores y frameworks**
+  El dominio no importa nada de las capas externas.
+end note
+
+@enduml

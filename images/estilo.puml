@@ -1,0 +1,190 @@
+@startuml estilo_arquitectonico
+
+title Estilo arquitectónico — Workers desacoplados sobre bus de eventos\nbackend del asistente virtual de trámites
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+
+skinparam rectangle {
+  BorderColor #1e1e1e
+  FontStyle bold
+}
+
+skinparam node {
+  BorderColor #1e1e1e
+  BackgroundColor #FFFFFF
+  FontStyle bold
+}
+
+skinparam cloud {
+  BorderColor #888888
+  BackgroundColor #EEEEEE
+  FontColor #1e1e1e
+}
+
+skinparam queue {
+  BorderColor #1e1e1e
+  BackgroundColor #DDEEFF
+}
+
+skinparam database {
+  BorderColor #1e1e1e
+  BackgroundColor #FFF4D6
+}
+
+skinparam component {
+  BorderColor #1e1e1e
+  BackgroundColor #E8F4E8
+}
+
+skinparam note {
+  BorderColor #1e1e1e
+  BackgroundColor #FFFCE8
+}
+
+' ============================================================
+' ACTORES
+' ============================================================
+actor "Administrado" as A1
+actor "Gestor de área" as A2
+actor "Autoridad /\nAdministrador" as A3
+
+' ============================================================
+' PRESENTACIÓN
+' ============================================================
+rectangle "PRESENTACIÓN" as PRES {
+  component "App Web Ciudadana\n(WCAG)" as WEB
+  component "Backoffice\nInstitucional" as BACK
+}
+
+' ============================================================
+' GATEWAY DE CANALES
+' ============================================================
+rectangle "GATEWAY DE CANALES\nAPI sin estado (WhatsApp · Web · SMS)\n< 200 ms con código de seguimiento" as GATEWAY #DDEEFF
+
+' ============================================================
+' BUS DE EVENTOS
+' ============================================================
+queue "BUS DE EVENTOS\ncolas por etapa\ntranscripción · clasificación · respuesta · notificación" as BUS #FFE6CC
+
+' ============================================================
+' WORKERS DE PROCESAMIENTO
+' ============================================================
+rectangle "WORKERS DE PROCESAMIENTO\n(consumen y publican en el bus)" as WORKERS {
+
+  component "Normalizador\nde texto" as W_NORM
+  component "Clasificador\nde intención" as W_CLAS
+  component "Extractor\nde entidades" as W_EXT
+  component "Enrutador\npor intención" as W_ROUT
+  component "Recuperador\n(corpus normativo)" as W_REC
+  component "Generador\ncon cita" as W_GEN
+  component "Evaluador\nde confianza" as W_CONF
+
+}
+
+' ============================================================
+' SERVICIO DE TRÁMITES
+' ============================================================
+rectangle "SERVICIO DE TRÁMITES\ncatálogo TUPA · estado de expedientes\ncapa anticorrupción con sistema documentario" as TRAMITES #E8F4E8
+
+' ============================================================
+' GESTOR DE DIÁLOGO GUIADO
+' ============================================================
+rectangle "GESTOR DE DIÁLOGO\nGUIADO\nmáquina de estados para\niniciar un trámite" as DIALOGO #E8F4E8
+
+' ============================================================
+' SERVICIO DE NOTIFICACIONES
+' ============================================================
+rectangle "SERVICIO DE\nNOTIFICACIONES\nWhatsApp · Web · SMS" as NOTIF #E8F4E8
+
+' ============================================================
+' DATOS
+' ============================================================
+rectangle "ALMACENAMIENTO" as DATOS {
+  database "BD relacional +\nextensión vectorial" as BD
+  component "Caché en memoria\n(sesión y estados)" as CACHE
+  component "Repositorio de\ndocumentos oficiales" as DOCS
+}
+
+' ============================================================
+' SISTEMAS EXTERNOS
+' ============================================================
+cloud "«sistema externo»\nSistema de gestión\ndocumentaria" as EXT_DOCU #EEEEEE
+cloud "«sistema externo»\nProveedor de modelos\n(lenguaje y voz)" as EXT_LLM #EEEEEE
+cloud "«sistema externo»\nRENIEC / PIDE\n(opcional)" as EXT_REN #EEEEEE
+cloud "«sistema externo»\nPasarela de pagos\n(opcional)" as EXT_PAG #EEEEEE
+
+' ============================================================
+' FLUJOS
+' ============================================================
+A1 --> WEB : HTTPS
+A2 --> BACK : HTTPS
+A3 --> BACK : HTTPS
+
+WEB   --> GATEWAY : mensaje
+BACK  --> GATEWAY : mensaje
+BACK  --> TRAMITES : consulta / edición
+BACK  --> NOTIF    : aprobación
+
+GATEWAY --> BUS    : encola
+
+BUS    --> W_NORM  : consume
+W_NORM --> BUS     : publica
+BUS    --> W_CLAS  : consume
+W_CLAS --> BUS     : publica
+BUS    --> W_EXT   : consume
+W_EXT  --> BUS     : publica
+BUS    --> W_ROUT  : consume
+
+W_ROUT --> W_REC     : informacion
+W_ROUT --> TRAMITES   : estado
+W_ROUT --> DIALOGO    : iniciar tramite
+
+W_REC   --> W_GEN
+W_GEN   --> W_CONF
+W_CONF  --> BUS : publica
+BUS     --> NOTIF : consume
+
+DIALOGO --> BUS   : publica
+TRAMITES --> BUS  : publica
+
+NOTIF   --> GATEWAY : respuesta por canal
+
+' ============================================================
+' DATOS
+' ============================================================
+TRAMITES  --> BD   : TUPA · expedientes
+W_REC     --> BD   : búsqueda semántica
+W_REC     --> DOCS : documentos
+W_CONF    --> BD   : auditoría
+BUS       --> CACHE: sesión / estados
+DIALOGO   --> BD   : prellenado
+NOTIF     --> BD   : trazabilidad
+
+' ============================================================
+' SISTEMAS EXTERNOS
+' ============================================================
+TRAMITES  --> EXT_DOCU : HTTPS / SOAP / REST
+W_NORM    --> EXT_LLM  : HTTPS (voz a texto)
+W_CLAS    --> EXT_LLM  : HTTPS (clasificación)
+W_GEN     --> EXT_LLM  : HTTPS (generación)
+DIALOGO   --> EXT_REN  : HTTPS (validación)
+DIALOGO   --> EXT_PAG  : HTTPS (cobro de tasa)
+
+' ============================================================
+' LEYENDA
+' ============================================================
+legend right
+  |= Símbolo |= Significado |
+  | <#DDEEFF> Gateway | punto de entrada sin estado |
+  | <#FFE6CC> Bus de eventos | desacopla ingesta de inferencia |
+  | <#E8F4E8> Servicio / Worker | componente desplegable de forma independiente |
+  | <#FFF4D6> BD | persistencia |
+  | <#EEEEEE> Sistema externo | fuera del backend |
+endlegend
+
+@enduml
