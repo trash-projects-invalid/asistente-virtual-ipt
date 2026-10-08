@@ -38,6 +38,8 @@ La documentación se organiza siguiendo las dos etapas del laboratorio:
 ### Etapa 2 — Diseño arquitectónico inicial
 
 - [Arquitectura inicial (diagrama Mermaid)](arquitectura/arquitectura-inicial.md)
+- [Estilo arquitectónico — Workers desacoplados sobre bus de eventos (PASO 4)](arquitectura/estilo-arquitectonico.md)
+- [Enfoque arquitectónico — Clean Architecture en el Servicio de Trámites (PASO 5)](arquitectura/enfoque-arquitectonico.md)
 - [Código fuente del diagrama](images/arquitectura_sistema.mmd)
 
 ## Vista previa del diagrama de arquitectura
