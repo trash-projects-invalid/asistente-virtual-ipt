@@ -3,7 +3,7 @@
 > Documento correspondiente al **PASO 5** de la GUIA-003-ASF.
 > Define **cómo se organizan internamente** las responsabilidades y dependencias del **Servicio de trámites**, el componente del backend con el dominio más estable (TUPA, Expediente) y el mayor número de integraciones externas (sistema documentario, RENIEC, pasarela de pagos).
 
-![Enfoque arquitectónico](../images/enfoque.png)
+![Enfoque arquitectónico](../diseno/diagramas/enfoque.png)
 
 ## 1. Enfoque seleccionado: **Clean Architecture (Arquitectura Limpia)**
 
@@ -46,7 +46,7 @@ Cambiar de proveedor se resume en editar esa línea; ni el dominio ni los casos 
 
 ## 4. Sistema externo (visto desde el Servicio de trámites)
 
-El Servicio de trámites es el **punto de contacto con el exterior** y aísla al resto del backend de los cambios en sistemas externos. Su capa anticorrupción se documenta en [`../estilo-arquitectonico.md`](../estilo-arquitectonico.md):
+El Servicio de trámites es el **punto de contacto con el exterior** y aísla al resto del backend de los cambios en sistemas externos. Su capa anticorrupción se documenta en [Estilo arquitectónico](estilo-arquitectonico.md):
 
 | Sistema externo                              | Adaptador (puerto → adaptador)                                |
 | -------------------------------------------- | -------------------------------------------------------------- |
@@ -85,5 +85,5 @@ Estas reglas se verifican ejecutando el Servicio de trámites **sin Express ni S
 
 | Nivel                                | Documento                                                  | Pregunta que responde                                                          |
 | ------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **Estilo arquitectónico** (PASO 4)   | [`../estilo-arquitectonico.md`](../estilo-arquitectonico.md) | ¿Cómo se organiza, se comunica y se despliega **globalmente** el backend?     |
+| **Estilo arquitectónico** (PASO 4)   | [Estilo arquitectónico](estilo-arquitectonico.md) | ¿Cómo se organiza, se comunica y se despliega **globalmente** el backend?     |
 | **Enfoque arquitectónico** (PASO 5)  | Este documento                                             | ¿Cómo se organiza **internamente** el Servicio de trámites (responsabilidades y dependencias)? |

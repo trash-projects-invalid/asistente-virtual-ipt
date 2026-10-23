@@ -71,7 +71,7 @@ Sistemas externos:
 
 ## 2. Diagrama de arquitectura
 
-El código fuente Mermaid también se encuentra disponible en [`/images/arquitectura_sistema.mmd`](../images/arquitectura_sistema.mmd) para poder reutilizarlo en otros documentos.
+El código fuente Mermaid también se encuentra disponible en [arquitectura_sistema.mmd](../diseno/diagramas/arquitectura_sistema.mmd) para poder reutilizarlo en otros documentos.
 
 ```mermaid
 flowchart TD

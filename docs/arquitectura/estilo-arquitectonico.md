@@ -3,7 +3,7 @@
 > Documento correspondiente al **PASO 4** de la GUIA-003-ASF.
 > Define la **forma global** del backend: cómo se organiza, se comunica y se despliega el conjunto de servicios del asistente virtual.
 
-![Estilo arquitectónico](../images/estilo.png)
+![Estilo arquitectónico](../diseno/diagramas/estilo.png)
 
 ## 1. Estilo seleccionado: **Workers desacoplados sobre un bus de eventos con gateway sin estado**
 
